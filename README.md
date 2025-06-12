@@ -4,11 +4,11 @@ An interactive machine learning demo that predicts heart disease risk based on c
 
 ## 🚀 Live Demo
 
-[Try the live demo here](https://your-app-name.railway.app) (Coming soon)
+[Try the live demo here](https://heartdiseasepredictor-production.up.railway.app) (Deploying soon)
 
 ## 📋 Features
 
-- **Interactive Interface**: User-friendly Streamlit web app
+- **Interactive Interface**: User-friendly web application
 - **Real-time Predictions**: Instant risk assessment based on input parameters
 - **Professional Styling**: Clean, medical-themed UI design
 - **Risk Analysis**: Detailed breakdown of risk factors
@@ -24,6 +24,7 @@ An interactive machine learning demo that predicts heart disease risk based on c
   - Thalassemia, vessel blockages
 - **Accuracy**: ~94% on validation data
 - **Framework**: Scikit-learn, Streamlit, Pandas
+- **Deployment**: Railway.app with Docker containers
 
 ## 🏃‍♂️ Running Locally
 
@@ -41,15 +42,16 @@ An interactive machine learning demo that predicts heart disease risk based on c
 
 ## 🚀 Deployment
 
-### Railway (Recommended)
+### Railway (Production Platform)
 1. Push to GitHub repository
 2. Connect to [Railway.app](https://railway.app)
-3. Deploy with one click
+3. Automatic deployment with container orchestration
+4. Custom domain and SSL certificate support
 
 ### Alternative Platforms
-- **Render**: Free tier available
-- **Heroku**: Add `setup.sh` and `Procfile`
-- **Streamlit Cloud**: Direct deployment
+- **Render**: Good alternative with free tier
+- **Heroku**: Classic choice with buildpacks
+- **Streamlit Cloud**: Quick prototyping option
 
 ## ⚠️ Important Notes
 

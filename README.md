@@ -1,10 +1,10 @@
-# Heart Disease Risk Predictor Demo
+# Heart Disease Risk Predictor
 
 An interactive machine learning demo that predicts heart disease risk based on clinical parameters.
 
 ## 🚀 Live Demo
 
-[Try the live demo here](https://your-app-name.streamlit.app) (Coming soon)
+[Try the live demo here](https://your-app-name.railway.app) (Coming soon)
 
 ## 📋 Features
 
@@ -41,15 +41,15 @@ An interactive machine learning demo that predicts heart disease risk based on c
 
 ## 🚀 Deployment
 
-### Streamlit Cloud (Recommended)
+### Railway (Recommended)
 1. Push to GitHub repository
-2. Connect to [Streamlit Cloud](https://streamlit.io/cloud)
+2. Connect to [Railway.app](https://railway.app)
 3. Deploy with one click
 
 ### Alternative Platforms
-- **Heroku**: Add `setup.sh` and `Procfile`
-- **Railway**: Direct deployment from GitHub
 - **Render**: Free tier available
+- **Heroku**: Add `setup.sh` and `Procfile`
+- **Streamlit Cloud**: Direct deployment
 
 ## ⚠️ Important Notes
 
@@ -100,4 +100,4 @@ This demo showcases:
 
 ---
 
-Built by **Daniel Park** | [Portfolio](https://danielpark-portfolio.com) | [GitHub](https://github.com/danielpark)
+Built by **Daniel Park** | [Portfolio](https://danielpark-portfolio.com) | [GitHub](https://github.com/dSpringOnion)

@@ -49,7 +49,16 @@ Thumbs.db
 # Logs
 *.log
 
-# Model files (if large)
-*.pkl
-*.joblib
-models/
+# Model files (comment out to include trained models in repo)
+# *.pkl
+# *.joblib
+
+# Training data (will be downloaded)
+cleveland_data.csv
+processed.cleveland.data
+
+# Model artifacts (uncomment to exclude from repo)
+# heart_disease_model.pkl
+# feature_scaler.pkl
+# feature_names.txt
+# model_metadata.json

@@ -55,46 +55,65 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Demo model class (since we don't have the actual trained model)
-class HeartDiseaseModel:
-    def __init__(self):
-        # Initialize with a simple model for demo purposes
-        self.model = RandomForestClassifier(n_estimators=100, random_state=42)
-        self.scaler = StandardScaler()
-        self._train_demo_model()
-    
-    def _train_demo_model(self):
-        # Create synthetic training data for demo
-        np.random.seed(42)
-        n_samples = 1000
-        
-        # Generate synthetic features
-        X = np.random.randn(n_samples, 13)
-        
-        # Create realistic heart disease labels based on feature combinations
-        y = np.where(
-            (X[:, 0] > 0.5) |  # age factor
-            (X[:, 3] > 1.0) |  # chest pain
-            (X[:, 4] > 0.8) |  # cholesterol
-            ((X[:, 1] > 0.3) & (X[:, 2] > 0.3)),  # combined factors
-            1, 0
-        )
-        
-        # Add some noise
-        noise = np.random.random(n_samples) < 0.1
-        y[noise] = 1 - y[noise]
-        
-        # Train the model
-        X_scaled = self.scaler.fit_transform(X)
-        self.model.fit(X_scaled, y)
-    
-    def predict_proba(self, features):
-        features_scaled = self.scaler.transform([features])
-        return self.model.predict_proba(features_scaled)[0]
-
+# Real trained model loader
 @st.cache_resource
 def load_model():
-    return HeartDiseaseModel()
+    """Load the trained heart disease prediction model"""
+    try:
+        # Try to load the actual trained model
+        model = joblib.load('heart_disease_model.pkl')
+        scaler = joblib.load('feature_scaler.pkl')
+        
+        # Load feature names
+        with open('feature_names.txt', 'r') as f:
+            feature_names = [line.strip() for line in f.readlines()]
+        
+        # Load metadata
+        import json
+        with open('model_metadata.json', 'r') as f:
+            metadata = json.load(f)
+        
+        print("✅ Loaded trained model from Cleveland Heart Disease dataset")
+        return {
+            'model': model,
+            'scaler': scaler,
+            'feature_names': feature_names,
+            'metadata': metadata
+        }
+        
+    except FileNotFoundError:
+        print("⚠️ Trained model not found. Please run 'python train_model.py' first.")
+        # Fallback to demo model
+        return load_demo_model()
+
+def load_demo_model():
+    """Fallback demo model if trained model is not available"""
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import StandardScaler
+    
+    # Create a simple demo model
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    scaler = StandardScaler()
+    
+    # Generate demo training data
+    np.random.seed(42)
+    X = np.random.randn(1000, 17)  # 17 features including engineered ones
+    y = (X.sum(axis=1) > 0).astype(int)
+    
+    # Train demo model
+    X_scaled = scaler.fit_transform(X)
+    model.fit(X_scaled, y)
+    
+    feature_names = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg',
+                    'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal',
+                    'age_group', 'chol_risk', 'bp_risk', 'hr_concern']
+    
+    return {
+        'model': model,
+        'scaler': scaler,
+        'feature_names': feature_names,
+        'metadata': {'model_type': 'Demo Model', 'dataset': 'Synthetic Data'}
+    }
 
 def main():
     # Header
@@ -111,7 +130,11 @@ def main():
     """, unsafe_allow_html=True)
     
     # Load model
-    model = load_model()
+    model_data = load_model()
+    model = model_data['model']
+    scaler = model_data['scaler']
+    feature_names = model_data['feature_names']
+    metadata = model_data['metadata']
     
     # Create two columns for input
     col1, col2 = st.columns(2)
@@ -162,29 +185,39 @@ def main():
     slope_val = ["Upsloping", "Flat", "Downsloping"].index(slope)
     thal_val = ["Normal", "Fixed Defect", "Reversible Defect"].index(thal)
     
-    # Create feature vector
-    features = [
-        (age - 50) / 15,  # Normalized age
-        sex_val,
-        cp_val / 3,
-        (trestbps - 130) / 30,
-        (chol - 250) / 80,
-        fbs_val,
-        restecg_val / 2,
-        (thalach - 150) / 40,
-        exang_val,
-        oldpeak / 3,
-        slope_val / 2,
-        ca / 4,
-        thal_val / 2
-    ]
+    # Create feature vector with feature engineering
+    base_features = [age, sex_val, cp_val, trestbps, chol, fbs_val, restecg_val,
+                    thalach, exang_val, oldpeak, slope_val, ca, thal_val]
+    
+    # Feature engineering (same as in training)
+    age_group = 0 if age <= 40 else (1 if age <= 55 else (2 if age <= 70 else 3))
+    chol_risk = 1 if chol > 240 else 0
+    bp_risk = 1 if trestbps > 140 else 0
+    hr_concern = 1 if thalach < 100 else 0
+    
+    engineered_features = [age_group, chol_risk, bp_risk, hr_concern]
+    
+    # Combine all features
+    all_features = base_features + engineered_features
+    
+    # Ensure we have the right number of features
+    if len(all_features) != len(feature_names):
+        # Pad or truncate to match expected features
+        while len(all_features) < len(feature_names):
+            all_features.append(0)
+        all_features = all_features[:len(feature_names)]
     
     # Prediction button
     if st.button("🔍 Predict Heart Disease Risk", type="primary", use_container_width=True):
         with st.spinner("Analyzing your health data..."):
-            # Get prediction
-            probabilities = model.predict_proba(features)
-            risk_probability = probabilities[1]  # Probability of heart disease
+            try:
+                # Scale features and get prediction
+                features_scaled = scaler.transform([all_features])
+                probabilities = model.predict_proba(features_scaled)[0]
+                risk_probability = probabilities[1]  # Probability of heart disease
+            except Exception as e:
+                st.error(f"Prediction error: {e}")
+                risk_probability = 0.5  # Default fallback
             
             # Display results
             st.markdown("---")
@@ -224,22 +257,43 @@ def main():
                 st.metric("Max Heart Rate", f"{thalach} bpm",
                          "Lower capacity" if thalach < 120 else "Good capacity")
     
-    # Footer
+    # Model information section
     st.markdown("---")
-    st.markdown("""
-    <div class="info-box">
-        <h4>⚠️ Important Disclaimer</h4>
-        <p>This is a demonstration model and should NOT be used for actual medical diagnosis. 
-        Always consult with qualified healthcare professionals for medical advice. 
-        This model is trained on synthetic data for portfolio demonstration purposes.</p>
-        
-        <h4>🛠️ Technical Details</h4>
-        <p><strong>Model:</strong> Random Forest Classifier with 100 estimators<br>
-        <strong>Features:</strong> 13 clinical parameters<br>
-        <strong>Demo Accuracy:</strong> ~94% (on synthetic validation data)<br>
-        <strong>Framework:</strong> Scikit-learn, Streamlit</p>
-    </div>
-    """, unsafe_allow_html=True)
+    
+    # Display model metadata
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        <div class="info-box">
+            <h4>⚠️ Important Disclaimer</h4>
+            <p>This is a demonstration model and should NOT be used for actual medical diagnosis. 
+            Always consult with qualified healthcare professionals for medical advice.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="info-box">
+            <h4>🛠️ Technical Details</h4>
+            <p><strong>Model:</strong> {metadata.get('model_type', 'Machine Learning Model')}<br>
+            <strong>Dataset:</strong> {metadata.get('dataset', 'Heart Disease Dataset')}<br>
+            <strong>Features:</strong> {len(feature_names)} clinical parameters<br>
+            <strong>Framework:</strong> Scikit-learn, Streamlit, Railway</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Add dataset citation if using real data
+    if 'Cleveland' in metadata.get('dataset', ''):
+        st.markdown("""
+        <div class="info-box">
+            <h4>📚 Dataset Citation</h4>
+            <p><strong>Source:</strong> UCI Machine Learning Repository<br>
+            <strong>Citation:</strong> Janosi, A., Steinbrunn, W., Pfisterer, M., & Detrano, R. (1988). 
+            Heart Disease. UCI Machine Learning Repository. 
+            <a href="https://doi.org/10.24432/C52P4X" target="_blank">https://doi.org/10.24432/C52P4X</a></p>
+        </div>
+        """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

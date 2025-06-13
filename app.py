@@ -97,7 +97,7 @@ def load_demo_model():
     
     # Generate demo training data
     np.random.seed(42)
-    X = np.random.randn(1000, 17)  # 17 features including engineered ones
+    X = np.random.randn(1000, 24)  # 24 features including comprehensive engineered ones
     y = (X.sum(axis=1) > 0).astype(int)
     
     # Train demo model
@@ -106,7 +106,10 @@ def load_demo_model():
     
     feature_names = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg',
                     'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal',
-                    'age_group', 'chol_risk', 'bp_risk', 'hr_concern']
+                    'age_group', 'chol_risk', 'bp_risk', 'hr_concern',
+                    'metabolic_syndrome', 'cardiac_stress', 'electrical_abnormality', 
+                    'vessel_disease', 'chest_pain_severity', 'exercise_tolerance', 
+                    'perfusion_defect']
     
     return {
         'model': model,
@@ -189,13 +192,30 @@ def main():
     base_features = [age, sex_val, cp_val, trestbps, chol, fbs_val, restecg_val,
                     thalach, exang_val, oldpeak, slope_val, ca, thal_val]
     
-    # Feature engineering (same as in training)
+    # Comprehensive clinical risk factor calculations
     age_group = 0 if age <= 40 else (1 if age <= 55 else (2 if age <= 70 else 3))
     chol_risk = 1 if chol > 240 else 0
     bp_risk = 1 if trestbps > 140 else 0
     hr_concern = 1 if thalach < 100 else 0
     
-    engineered_features = [age_group, chol_risk, bp_risk, hr_concern]
+    # Advanced cardiovascular risk indicators
+    metabolic_syndrome = (chol > 200 and trestbps > 130 and fbs_val == 1)
+    cardiac_stress = (thalach < 150 and exang_val == 1 and oldpeak > 1.0)
+    electrical_abnormality = (restecg_val > 0 or slope_val == 2)
+    vessel_disease = (ca > 0 or thal_val == 2)
+    
+    # Clinical severity scores
+    chest_pain_severity = cp_val  # 0=typical angina (most severe), 3=asymptomatic (least severe)
+    exercise_tolerance = 1 if (thalach < 120 or exang_val == 1) else 0
+    perfusion_defect = 1 if (thal_val == 2 or oldpeak > 2.0) else 0
+    
+    # Comprehensive feature engineering
+    engineered_features = [
+        age_group, chol_risk, bp_risk, hr_concern,
+        int(metabolic_syndrome), int(cardiac_stress), 
+        int(electrical_abnormality), int(vessel_disease),
+        chest_pain_severity, exercise_tolerance, perfusion_defect
+    ]
     
     # Combine all features
     all_features = base_features + engineered_features
@@ -240,22 +260,164 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
             
-            # Risk factors analysis
-            st.subheader("📊 Risk Factor Analysis")
+            # Comprehensive Risk Factor Analysis
+            st.subheader("📊 Comprehensive Risk Factor Analysis")
             
+            # Primary Clinical Indicators
+            st.markdown("#### 🩺 Primary Clinical Indicators")
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                age_status = "Higher risk" if age > 55 else ("Moderate risk" if age > 45 else "Lower risk")
+                st.metric("Age Factor", f"{age} years", age_status)
+            
+            with col2:
+                chol_status = "High risk" if chol > 240 else ("Borderline" if chol > 200 else "Optimal")
+                st.metric("Cholesterol", f"{chol} mg/dl", chol_status)
+            
+            with col3:
+                bp_status = "Hypertension" if trestbps > 140 else ("Pre-hypertension" if trestbps > 120 else "Normal")
+                st.metric("Blood Pressure", f"{trestbps} mmHg", bp_status)
+            
+            with col4:
+                hr_status = "Reduced capacity" if thalach < 120 else ("Good" if thalach > 150 else "Fair")
+                st.metric("Max Heart Rate", f"{thalach} bpm", hr_status)
+            
+            # Advanced Cardiovascular Risk Indicators
+            st.markdown("#### 🫀 Advanced Cardiovascular Risk Indicators")
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                metabolic_status = "⚠️ Present" if metabolic_syndrome else "✅ Absent"
+                st.metric("Metabolic Syndrome", metabolic_status, 
+                         "High cholesterol + hypertension + diabetes")
+            
+            with col2:
+                cardiac_status = "⚠️ Present" if cardiac_stress else "✅ Normal"
+                st.metric("Cardiac Stress", cardiac_status,
+                         "Low exercise capacity + angina")
+            
+            with col3:
+                electrical_status = "⚠️ Abnormal" if electrical_abnormality else "✅ Normal"
+                st.metric("ECG/Exercise Response", electrical_status,
+                         "Electrical conduction issues")
+            
+            with col4:
+                vessel_status = "⚠️ Disease Present" if vessel_disease else "✅ Normal"
+                st.metric("Vessel/Perfusion", vessel_status,
+                         "Coronary vessel or perfusion defects")
+            
+            # Clinical Risk Score Breakdown
+            st.markdown("#### 📈 Clinical Risk Score Breakdown")
+            
+            risk_factors = {
+                "Age Risk": age > 55,
+                "Male Gender": sex_val == 1,
+                "Chest Pain (Symptomatic)": cp_val < 3,
+                "Hypertension": trestbps > 140,
+                "High Cholesterol": chol > 240,
+                "Diabetes": fbs_val == 1,
+                "ECG Abnormalities": restecg_val > 0,
+                "Reduced Exercise Capacity": thalach < 150,
+                "Exercise-Induced Angina": exang_val == 1,
+                "ST Depression": oldpeak > 1.0,
+                "Abnormal ST Slope": slope_val == 2,
+                "Vessel Disease": ca > 0,
+                "Perfusion Defect": thal_val == 2
+            }
+            
+            present_risks = [factor for factor, present in risk_factors.items() if present]
+            absent_risks = [factor for factor, present in risk_factors.items() if not present]
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**⚠️ Risk Factors Present:**")
+                if present_risks:
+                    for risk in present_risks:
+                        st.markdown(f"• {risk}")
+                else:
+                    st.markdown("• No major risk factors identified")
+            
+            with col2:
+                st.markdown("**✅ Protective Factors:**")
+                if absent_risks:
+                    for risk in absent_risks[:6]:  # Show first 6 to avoid clutter
+                        st.markdown(f"• No {risk}")
+                    if len(absent_risks) > 6:
+                        st.markdown(f"• ...and {len(absent_risks) - 6} more protective factors")
+                
+            # Risk Score Summary
+            risk_score = sum(risk_factors.values())
+            total_factors = len(risk_factors)
+            risk_percentage = (risk_score / total_factors) * 100
+            
+            st.markdown("#### 📊 Overall Risk Assessment")
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.metric("Age Factor", f"{age} years", 
-                         "Higher risk" if age > 55 else "Normal range")
+                st.metric("Risk Factors Present", f"{risk_score}/{total_factors}")
             
             with col2:
-                st.metric("Cholesterol", f"{chol} mg/dl",
-                         "Elevated" if chol > 240 else "Normal range")
+                st.metric("Risk Factor Score", f"{risk_percentage:.1f}%")
             
             with col3:
-                st.metric("Max Heart Rate", f"{thalach} bpm",
-                         "Lower capacity" if thalach < 120 else "Good capacity")
+                risk_category = ("High" if risk_score >= 7 else 
+                               "Moderate" if risk_score >= 4 else "Low")
+                st.metric("Risk Category", risk_category)
+    
+    # Clinical Education Section
+    st.markdown("---")
+    st.subheader("📚 Understanding Your Results")
+    
+    # Create expandable sections for education
+    with st.expander("🫀 **Cardiovascular Risk Factors Explained**"):
+        st.markdown("""
+        **Age & Gender:** Men over 45 and women over 55 have increased risk due to hormonal changes and arterial aging.
+        
+        **Chest Pain Types:**
+        - *Typical Angina:* Classic heart pain with exertion, highest concern
+        - *Atypical Angina:* Unusual chest pain patterns  
+        - *Non-Anginal:* Chest pain likely not heart-related
+        - *Asymptomatic:* No chest pain symptoms
+        
+        **Blood Pressure:** Hypertension (>140/90) damages arteries over time, increasing heart disease risk.
+        
+        **Cholesterol:** High levels (>240 mg/dl) lead to plaque buildup in arteries.
+        
+        **Blood Sugar:** Diabetes damages blood vessels and accelerates atherosclerosis.
+        """)
+    
+    with st.expander("🔬 **Advanced Testing Explained**"):
+        st.markdown("""
+        **ECG (Electrocardiogram):** Measures heart's electrical activity
+        - *Normal:* Regular heart rhythm
+        - *ST-T Wave Abnormality:* Possible ischemia or old damage
+        - *Left Ventricular Hypertrophy:* Heart muscle thickening from high blood pressure
+        
+        **Exercise Stress Test:**
+        - *Maximum Heart Rate:* Higher is generally better (220 - age = target)
+        - *Exercise Angina:* Chest pain during exercise indicates insufficient blood flow
+        - *ST Depression:* Electrical changes suggesting blocked arteries
+        
+        **Coronary Angiography:**
+        - *Vessel Count:* Number of major arteries with significant blockage (0-4)
+        - *Thalassemia:* Blood flow patterns showing perfusion defects
+        """)
+    
+    with st.expander("⚕️ **Clinical Interpretation Guidelines**"):
+        st.markdown("""
+        **Risk Stratification:**
+        - *Low Risk (0-3 factors):* Standard preventive care
+        - *Moderate Risk (4-6 factors):* Enhanced monitoring and lifestyle changes
+        - *High Risk (7+ factors):* Aggressive treatment and specialist referral
+        
+        **Metabolic Syndrome:** Combination of diabetes, hypertension, and high cholesterol significantly increases risk.
+        
+        **Cardiac Stress Indicators:** Poor exercise tolerance combined with symptoms suggests significant coronary disease.
+        
+        **Important Note:** This analysis is for educational purposes only. Always consult with qualified cardiologists for proper medical evaluation and treatment decisions.
+        """)
     
     # Model information section
     st.markdown("---")

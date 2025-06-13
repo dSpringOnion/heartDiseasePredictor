@@ -108,11 +108,22 @@ def preprocess_data(data):
     # Convert target to binary (0: no disease, 1: disease present)
     data['target'] = (data['target'] > 0).astype(int)
     
-    # Feature engineering
+    # Comprehensive feature engineering
     data['age_group'] = pd.cut(data['age'], bins=[0, 40, 55, 70, 100], labels=[0, 1, 2, 3])
     data['chol_risk'] = (data['chol'] > 240).astype(int)
     data['bp_risk'] = (data['trestbps'] > 140).astype(int)
     data['hr_concern'] = (data['thalach'] < 100).astype(int)
+    
+    # Advanced cardiovascular risk indicators
+    data['metabolic_syndrome'] = ((data['chol'] > 200) & (data['trestbps'] > 130) & (data['fbs'] == 1)).astype(int)
+    data['cardiac_stress'] = ((data['thalach'] < 150) & (data['exang'] == 1) & (data['oldpeak'] > 1.0)).astype(int)
+    data['electrical_abnormality'] = ((data['restecg'] > 0) | (data['slope'] == 2)).astype(int)
+    data['vessel_disease'] = ((data['ca'] > 0) | (data['thal'] == 2)).astype(int)
+    
+    # Clinical severity scores
+    data['chest_pain_severity'] = data['cp']  # 0=typical angina (most severe), 3=asymptomatic (least severe)
+    data['exercise_tolerance'] = ((data['thalach'] < 120) | (data['exang'] == 1)).astype(int)
+    data['perfusion_defect'] = ((data['thal'] == 2) | (data['oldpeak'] > 2.0)).astype(int)
     
     # Convert categorical to numeric if needed
     categorical_cols = ['age_group']
@@ -247,10 +258,13 @@ def main():
     # Preprocess data
     data = preprocess_data(data)
     
-    # Prepare features and target
+    # Prepare features and target with comprehensive feature engineering
     feature_cols = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg',
                    'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal',
-                   'age_group', 'chol_risk', 'bp_risk', 'hr_concern']
+                   'age_group', 'chol_risk', 'bp_risk', 'hr_concern',
+                   'metabolic_syndrome', 'cardiac_stress', 'electrical_abnormality', 
+                   'vessel_disease', 'chest_pain_severity', 'exercise_tolerance', 
+                   'perfusion_defect']
     
     # Use only available features
     available_features = [col for col in feature_cols if col in data.columns]

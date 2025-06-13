@@ -95,10 +95,52 @@ def load_demo_model():
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     scaler = StandardScaler()
     
-    # Generate demo training data
+    # Generate realistic demo training data based on Cleveland dataset patterns
     np.random.seed(42)
-    X = np.random.randn(1000, 24)  # 24 features including comprehensive engineered ones
-    y = (X.sum(axis=1) > 0).astype(int)
+    n_samples = 1000
+    
+    # Generate base features with realistic distributions
+    age = np.random.normal(54, 9, n_samples).clip(29, 77)
+    sex = np.random.choice([0, 1], n_samples, p=[0.32, 0.68])
+    cp = np.random.choice([0, 1, 2, 3], n_samples, p=[0.47, 0.17, 0.28, 0.08])
+    trestbps = np.random.normal(131, 17, n_samples).clip(94, 200)
+    chol = np.random.normal(246, 51, n_samples).clip(126, 564)
+    
+    # Create realistic risk-based target
+    risk_score = (
+        (age > 55) * 0.3 +
+        (sex == 1) * 0.2 +
+        (cp < 2) * 0.4 +
+        (trestbps > 140) * 0.2 +
+        (chol > 240) * 0.3
+    )
+    risk_score += np.random.normal(0, 0.2, n_samples)
+    y = (risk_score > 0.8).astype(int)
+    
+    # Create feature matrix with all 24 features
+    X = np.column_stack([
+        age, sex, cp, trestbps, chol,
+        np.random.choice([0, 1], n_samples, p=[0.85, 0.15]),  # fbs
+        np.random.choice([0, 1, 2], n_samples, p=[0.48, 0.48, 0.04]),  # restecg
+        np.random.normal(149, 22, n_samples).clip(71, 202),  # thalach
+        np.random.choice([0, 1], n_samples, p=[0.68, 0.32]),  # exang
+        np.random.exponential(1.04, n_samples).clip(0, 6.2),  # oldpeak
+        np.random.choice([0, 1, 2], n_samples, p=[0.21, 0.40, 0.39]),  # slope
+        np.random.choice([0, 1, 2, 3], n_samples, p=[0.59, 0.22, 0.13, 0.06]),  # ca
+        np.random.choice([0, 1, 2], n_samples, p=[0.55, 0.38, 0.07]),  # thal
+        # Engineered features (11 additional)
+        np.random.choice([0, 1, 2, 3], n_samples),  # age_group
+        (chol > 240).astype(int),  # chol_risk
+        (trestbps > 140).astype(int),  # bp_risk
+        np.random.choice([0, 1], n_samples, p=[0.9, 0.1]),  # hr_concern
+        np.random.choice([0, 1], n_samples, p=[0.85, 0.15]),  # metabolic_syndrome
+        np.random.choice([0, 1], n_samples, p=[0.8, 0.2]),  # cardiac_stress
+        np.random.choice([0, 1], n_samples, p=[0.7, 0.3]),  # electrical_abnormality
+        np.random.choice([0, 1], n_samples, p=[0.6, 0.4]),  # vessel_disease
+        cp,  # chest_pain_severity
+        np.random.choice([0, 1], n_samples, p=[0.75, 0.25]),  # exercise_tolerance
+        np.random.choice([0, 1], n_samples, p=[0.8, 0.2])   # perfusion_defect
+    ])
     
     # Train demo model
     X_scaled = scaler.fit_transform(X)
@@ -115,7 +157,7 @@ def load_demo_model():
         'model': model,
         'scaler': scaler,
         'feature_names': feature_names,
-        'metadata': {'model_type': 'Demo Model', 'dataset': 'Synthetic Data'}
+        'metadata': {'model_type': 'Enhanced Demo Model', 'dataset': 'Realistic Synthetic Data (Cleveland-based)'}
     }
 
 def main():
